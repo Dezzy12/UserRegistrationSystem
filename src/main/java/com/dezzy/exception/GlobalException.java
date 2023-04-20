@@ -23,4 +23,13 @@ public class GlobalException {
         customErrorType.setStatus(HttpStatus.NO_CONTENT.value());
         return new ResponseEntity<CustomErrorType>(customErrorType, HttpStatus.OK);
     }
+
+    @ExceptionHandler
+    public ResponseEntity<CustomErrorType> handleDataExistException(DataExistException ex){
+        CustomErrorType customErrorType = new CustomErrorType();
+        customErrorType.setMessage(ex.errorMessage);
+        customErrorType.setStatus(HttpStatus.CONFLICT.value());
+        customErrorType.setPath(ex.path);
+        return new ResponseEntity<CustomErrorType>(customErrorType, HttpStatus.CONFLICT);
+    }
 }

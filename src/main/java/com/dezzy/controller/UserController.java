@@ -1,6 +1,8 @@
 package com.dezzy.controller;
 
 import com.dezzy.dto.UserDTO;
+import com.dezzy.exception.DataExistException;
+import com.dezzy.exception.NoDataFoundException;
 import com.dezzy.exception.ResourceNotFoundException;
 import com.dezzy.repository.UserRepository;
 import org.slf4j.Logger;
@@ -30,10 +32,16 @@ public class UserController {
     @GetMapping("/")
     public ResponseEntity<List<UserDTO>> getAllUsers(){
         List<UserDTO> users = userRepository.findAll();
+        if (users.isEmpty()){
+            throw new NoDataFoundException("No user Available");
+        }
         return  new ResponseEntity<List<UserDTO>>(users, HttpStatus.OK);
     }
     @PostMapping("/")
     public ResponseEntity<UserDTO> createUser(@RequestBody UserDTO user){
+        if(userRepository.findByName(user.getName()) != null){
+            throw new DataExistException("Unable to create new user.A user with name "+ user.getName() + " already exist.", "/api/user/" );
+        }
         userRepository.save(user);
         return new ResponseEntity<UserDTO>(user, HttpStatus.CREATED);
     }
@@ -41,7 +49,7 @@ public class UserController {
     public ResponseEntity<UserDTO> getUserById(@PathVariable("id") Long id){
         Optional<UserDTO> userData = userRepository.findById(id);
         if (!userData.isPresent()){
-            throw new ResourceNotFoundException("User with id "+ id + " not found","/api/user");
+            throw new ResourceNotFoundException("User with id "+ id + " not found","/api/user/");
         }
         return userData.map(user ->
                 new ResponseEntity<>(user, HttpStatus.OK)).orElseGet(() ->
@@ -60,13 +68,23 @@ public class UserController {
 
             return new ResponseEntity<>(userRepository.save(newUser),HttpStatus.OK);
         }else{
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            throw new ResourceNotFoundException("Unable to update. User with id "+id+ " not found.", "/api/user/");
         }
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<UserDTO> deleteUser(@PathVariable("id") Long id){
+
+        Optional<UserDTO> user = userRepository.findById(id);
+        if (!user.isPresent()){
+            throw new ResourceNotFoundException(
+                    "Unable to delete. User with id "+id+ " not found.",
+                    "/api/user/"
+            );
+        }
         userRepository.deleteById(id);
-        return new ResponseEntity<UserDTO>(HttpStatus.NO_CONTENT);
+        throw new NoDataFoundException(
+                "Deleted User with id "+id+"."
+        );
     }
 }
